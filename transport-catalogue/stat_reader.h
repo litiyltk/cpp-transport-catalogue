@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iomanip> //для setprecision
+#include <iomanip> 
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -23,6 +23,9 @@ struct CommandDescription {
     std::string command;      // Название команды
     std::string description;  // Параметры команды
 };
+
+// Получает запросы на вывод из cin, вызывает ParseAndPrintStat для каждого запроса
+void OutputRequests(const TransportCatalogue& transport_catalogue, std::istream& input, std::ostream& output);
 
 // вызывает PrintBusInfo или PrintStopInfo в зависимости от запроса в CommandDescription
 void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::string_view request, std::ostream& output);

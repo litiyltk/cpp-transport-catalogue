@@ -4,6 +4,16 @@
 namespace transport_catalogue::stat_reader {
     using namespace std::literals;
 
+void OutputRequests(const TransportCatalogue& transport_catalogue, std::istream& input, std::ostream& output) {
+    int stat_request_count;
+    input >> stat_request_count >> std::ws;
+    for (int i = 0; i < stat_request_count; ++i) {
+        std::string line;
+        getline(input, line);
+        transport_catalogue::stat_reader::ParseAndPrintStat(transport_catalogue, line, output);
+    }
+}
+
 void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::string_view request, std::ostream& output) {
     using namespace std::string_view_literals;
     CommandDescription line = ParseCommandDescription(request);

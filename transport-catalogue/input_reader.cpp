@@ -99,6 +99,22 @@ CommandDescription ParseCommandDescription(std::string_view line) {
             std::string(line.substr(colon_pos + 1))};
 }
 
+InputReader InputReader::InputRequests(std::istream& input, TransportCatalogue& catalogue) {
+    InputReader reader;
+    int base_request_count;
+    input >> base_request_count >> std::ws;
+    {
+        //transport_catalogue::input_reader::InputReader reader;
+        for (int i = 0; i < base_request_count; ++i) {
+            std::string line;
+            getline(input, line);
+            reader.ParseLine(line);
+        }
+        reader.ApplyCommands(catalogue);
+    }
+    return reader;
+}
+
 void InputReader::ParseLine(std::string_view line) {
     auto command_description = ParseCommandDescription(line);
     if (command_description) {

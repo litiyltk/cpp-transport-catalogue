@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <algorithm>
 #include <string>
 #include <string_view>
@@ -28,6 +29,9 @@ struct CommandDescription {
 
 class InputReader {
 public:
+    // 
+    InputReader InputRequests(std::istream& input, TransportCatalogue& catalogue);
+
     /**
      * Парсит строку в структуру CommandDescription и сохраняет результат в commands_
      */

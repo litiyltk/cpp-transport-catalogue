@@ -7,13 +7,13 @@ TransportCatalogue::TransportCatalogue() {}
 
 void TransportCatalogue::AddStop(const Stop& stop) {
     const Stop* temp = &stops_.emplace_back(stop);
-    stopname_to_stop_[std::move(temp->name)] = temp;
+    stopname_to_stop_[temp->name] = temp;
     //std::cerr << "new Stop #"<< stops_.size() <<" added in deque" << std::endl;
 }
     
 void TransportCatalogue::AddBus(const Bus& bus) {
     const auto* temp = &buses_.emplace_back(bus);
-    busname_to_bus_[std::move(temp->name)] = temp;
+    busname_to_bus_[temp->name] = temp;
 
     for (size_t i = 0; i < temp->route.size(); ++i) {
         stopname_to_buses_[std::move(temp->route[i])].insert(temp);

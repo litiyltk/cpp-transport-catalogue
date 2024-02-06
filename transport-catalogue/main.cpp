@@ -11,25 +11,10 @@ using namespace std;
 int main() {
     
     transport_catalogue::TransportCatalogue catalogue;
+    transport_catalogue::input_reader::InputReader reader;
 
-    int base_request_count;
-    cin >> base_request_count >> ws;
+    reader.InputRequests(cin, catalogue);
 
-    {
-        transport_catalogue::input_reader::InputReader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
+    transport_catalogue::stat_reader::OutputRequests(catalogue, cin, cout);
 
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(cin, line);
-        transport_catalogue::stat_reader::ParseAndPrintStat(catalogue, line, cout);
-    }
 }
