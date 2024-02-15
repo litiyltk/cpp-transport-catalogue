@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <algorithm>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -10,7 +9,6 @@
 
 // обработка запросов на заполнение справочника
 namespace transport_catalogue::input_reader {
-    using namespace std::literals;
 
 struct CommandDescription {
     // Определяет, задана ли команда (поле command непустое)
@@ -29,7 +27,7 @@ struct CommandDescription {
 
 class InputReader {
 public:
-    // 
+    // Получает запросы из cin, вызывает ApplyCommands для каждого запроса
     InputReader InputRequests(std::istream& input, TransportCatalogue& catalogue);
 
     /**
@@ -42,8 +40,11 @@ public:
      */
     void ApplyCommands(TransportCatalogue& catalogue) const;
 
+    // возвращает вектор комманд
+    std::vector<CommandDescription> GetCommands();
+
 private:
-    std::vector<CommandDescription> commands_;
+    std::vector<CommandDescription> commands_; //вектор комманд запроса на добавление в базу данных
     
 };
 

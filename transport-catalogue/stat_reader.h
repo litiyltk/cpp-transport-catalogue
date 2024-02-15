@@ -33,7 +33,8 @@ void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::strin
 // парсит строку запроса и возвращает CommandDescription
 CommandDescription ParseCommandDescription(const std::string_view request);
 
-// выводит информацию о маршруте автобуса Bus X: R stops on route, U unique stops, L route length
+// выводит информацию о маршруте автобуса Bus X: R stops on route, U unique stops, L route length, С route curvature
+// (curvature = distance / length)
 void PrintBusInfo(const TransportCatalogue& transport_catalogue, std::string_view name, std::ostream& output);
 
 // выводит информацию об остановке выводит Stop X: buses bus1 bus2 ... busN

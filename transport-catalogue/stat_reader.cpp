@@ -10,12 +10,11 @@ void OutputRequests(const TransportCatalogue& transport_catalogue, std::istream&
     for (int i = 0; i < stat_request_count; ++i) {
         std::string line;
         getline(input, line);
-        transport_catalogue::stat_reader::ParseAndPrintStat(transport_catalogue, line, output);
+        ParseAndPrintStat(transport_catalogue, line, output);
     }
 }
 
 void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::string_view request, std::ostream& output) {
-    using namespace std::string_view_literals;
     CommandDescription line = ParseCommandDescription(request);
     if (line.command == "Bus"sv) {
         PrintBusInfo(transport_catalogue, std::move(line.description), output);
@@ -25,7 +24,6 @@ void ParseAndPrintStat(const TransportCatalogue& transport_catalogue, std::strin
 }
 
 CommandDescription ParseCommandDescription(const std::string_view line) {
-    using namespace std::string_literals;
     auto space_pos = line.find(' ');
     auto data_begin = line.find_first_not_of(' ', space_pos);
 
@@ -36,7 +34,6 @@ CommandDescription ParseCommandDescription(const std::string_view line) {
 }
 
 void PrintBusInfo(const TransportCatalogue& transport_catalogue, std::string_view name, std::ostream& output) {
-    using namespace std::string_view_literals;
     auto bus_info = transport_catalogue.GetBusInfo(name);
     output << "Bus "sv << name << ": "sv;
 
@@ -45,14 +42,14 @@ void PrintBusInfo(const TransportCatalogue& transport_catalogue, std::string_vie
     } else {
         output  << bus_info.value().stops_on_route << " stops on route, "sv
                 << bus_info.value().unique_stops << " unique stops, "sv
+                << bus_info.value().route_distance << " route length, "sv
                 << std::setprecision(6)
-                << bus_info.value().route_length << " route length"sv
+                << bus_info.value().route_distance / bus_info.value().route_length << " curvature"sv
                 << "\n"sv;
     }
 }
 
 void PrintStopInfo(const TransportCatalogue& transport_catalogue, std::string_view name, std::ostream& output) {
-    using namespace std::string_view_literals;
     auto stop_info = transport_catalogue.GetStopInfo(name);
     output << "Stop "sv << name << ": "sv;
     

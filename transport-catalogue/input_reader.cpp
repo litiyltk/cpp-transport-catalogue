@@ -1,8 +1,6 @@
 #include "input_reader.h"
 
-#include <algorithm>
-#include <cassert>
-#include <iterator>
+
 #include <iostream>
 
 
@@ -99,12 +97,32 @@ CommandDescription ParseCommandDescription(std::string_view line) {
             std::string(line.substr(colon_pos + 1))};
 }
 
+/*
+парсит строку со списком расстояний от стартовой остановки,
+добавляет расстояния до указанных в запросе остановок в TransportCatalogue
+*/
+void ParseAndSetDistances(std::string_view start, std::string_view request, TransportCatalogue& catalogue) {
+    auto pos = request.find("to ");
+    while (pos != std::string::npos) {
+        auto b = pos + 3;
+        auto e = request.find(",", pos);
+        std::string_view finish = request.substr(b,  e - b);
+        
+        e = request.rfind("m", pos);
+        b = request.rfind(" ", e) + 1;
+        int distance = std::stoi(std::string(request.substr(b,  e - b)));
+
+        catalogue.SetDistance(start, finish, distance);
+        
+        pos = request.find("to ", ++pos);
+    }
+}
+
 InputReader InputReader::InputRequests(std::istream& input, TransportCatalogue& catalogue) {
     InputReader reader;
     int base_request_count;
     input >> base_request_count >> std::ws;
     {
-        //transport_catalogue::input_reader::InputReader reader;
         for (int i = 0; i < base_request_count; ++i) {
             std::string line;
             getline(input, line);
@@ -123,7 +141,6 @@ void InputReader::ParseLine(std::string_view line) {
 }
 
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
-    using namespace std::string_literals;
     /*if (commands_.empty()) {
         std::cerr << "нет запросов" << std::endl;
     }*/
@@ -141,8 +158,14 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
                 route.emplace_back(catalogue.FindStop(stop));
             }
             catalogue.AddBus({ line.id, route });
+        } else if (line.command == "Stop"s) {
+            ParseAndSetDistances(line.id, line.description, catalogue);
         }
     }
+}
+
+std::vector<CommandDescription> InputReader::GetCommands() {
+    return commands_;
 }
         
 } // namespace input_reader
