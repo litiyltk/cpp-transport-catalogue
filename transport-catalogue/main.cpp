@@ -1,17 +1,23 @@
 #include <iostream>
 
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "json_reader.h"
+#include "request_handler.h"
 #include "transport_catalogue.h"
+#include "map_renderer.h"
+//#include "tests.h"
 
 
 int main() {
 
+    //tests::Tests();
+
     transport_catalogue::TransportCatalogue catalogue;
-    transport_catalogue::input_reader::InputReader reader;
+    map_renderer::MapRendererSVG renderer;
 
-    reader.InputRequests(std::cin, catalogue);
-
-    transport_catalogue::stat_reader::OutputRequests(catalogue, std::cin, std::cout);
+    request_handler::RequestHandler handler(catalogue, renderer);
+    
+    json_reader::JsonReader reader(handler);
+    reader.LoadFromJson(std::cin);
+    reader.PrintIntoJson(std::cout);
     
 }

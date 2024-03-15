@@ -2,8 +2,7 @@
 
 
 namespace transport_catalogue {
-
-TransportCatalogue::TransportCatalogue() {}
+    using namespace domain;
 
 void TransportCatalogue::AddStop(const Stop& stop) {
     const Stop* temp = &stops_.emplace_back(stop);
@@ -36,12 +35,23 @@ std::optional<BusInfo> TransportCatalogue::GetBusInfo(const std::string_view nam
     BusInfo bus_info; 
     auto& bus = busname_to_bus_.at(name);
     auto route = bus->route;
-    bus_info = { std::move(bus)->name, route.size(), 
+    bool is_roundtrip = FindBus(name)->is_roundtrip;
+    bus_info = { std::move(bus)->name,
+                 ComputeCountStops(route.size(),is_roundtrip),
                  ComputeCountUniqueStops(route),
-                 ComputeRouteLength(route), 
-                 ComputeRouteDistance(route) }; 
+                 ComputeRouteLength(route, is_roundtrip), // географическая длина
+                 ComputeRouteDistance(route, is_roundtrip) }; // фактическая длина
     return bus_info;
 }
+
+const std::unordered_set<const Bus*>* TransportCatalogue::GetBusesByStop(const std::string_view name) const {
+    if (stopname_to_buses_.count(FindStop(name))) {
+        auto* temp = &stopname_to_buses_.at(FindStop(name));
+        return temp;
+    } else {
+        return nullptr;
+    }
+} 
 
 std::optional<StopInfo> TransportCatalogue::GetStopInfo(const std::string_view name) const {
     const auto* stop = FindStop(name);
@@ -80,28 +90,48 @@ int TransportCatalogue::GetDistance(const std::string_view start, const std::str
     return distances_.at({ finish_stop, start_stop });
 }
 
+const std::deque<Bus>& TransportCatalogue::GetBuses() {
+    return buses_;
+}
+
+const std::deque<Stop>& TransportCatalogue::GetStops() {
+    return stops_;
+}
+
 size_t TransportCatalogue::ComputeCountUniqueStops(const std::vector<const Stop*>& route) const {
     std::unordered_set<const Stop*> unique_stops{ route.begin(), route.end() };
     return unique_stops.size();
 }
 
-double TransportCatalogue::ComputeRouteLength(const std::vector<const Stop*>& route) const {
+size_t TransportCatalogue::ComputeCountStops(const size_t stops_count, const bool is_roundtrip) const {
+    return is_roundtrip ? stops_count : 2*stops_count - 1;
+}
+
+double TransportCatalogue::ComputeRouteLength(const std::vector<const Stop*>& route, const bool is_roundtrip) const {
     double route_length = 0;
-    for (auto i = 0; i < route.size() - 1; ++i) {
-        geo::Coordinates start = route[i]->coordinates;
-        geo::Coordinates finish = route[i+1]->coordinates;
-        route_length += ComputeDistance(std::move(start), std::move(finish)); // расчёт по координатам остановок
+    for (size_t i = 0; i < route.size() - 1; ++i) { // кольцевой маршрут по умолчанию A,B,C,A
+        route_length += ComputeDistance(route[i]->coordinates, route[i+1]->coordinates); // расчёт по координатам остановок
     }
+
+    if (!is_roundtrip) { // для прямого маршрута A,B,C,B,A путь туда-обратно A,B,C + C,B,A
+        route_length *= 2;
+    }
+
     return route_length;
 }
 
-int TransportCatalogue::ComputeRouteDistance(const std::vector<const Stop*>& route) const {
+int TransportCatalogue::ComputeRouteDistance(const std::vector<const Stop*>& route, const bool is_roundtrip) const {
     int distance = 0;
-    for (auto i = 0; i < route.size() - 1; ++i) {
-        std::string_view start = route[i]->name;
-        std::string_view finish = route[i+1]->name;
-        distance += GetDistance(start, finish); // значение из distances_ для пар остановок
+    for (size_t i = 0; i < route.size() - 1; ++i) {
+        distance += GetDistance(route[i]->name, route[i+1]->name); // значение из distances_ для пар остановок
     }
+
+    if (!is_roundtrip) { // для прямого маршрута A,B,C,B,A путь туда-обратно A,B,C + C,B,A
+        for (size_t i = route.size() - 1; i > 0; --i) {
+            distance += GetDistance(route[i]->name, route[i-1]->name); // значение из distances_ для пар остановок
+        }
+    }
+
     return distance;
 }
 
