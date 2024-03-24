@@ -26,20 +26,6 @@ void RequestHandler::AddStopBaseRequest(const StopBaseRequest& request) {
     stop_base_requests_.emplace_back(request);
 }
 
-/*void RequestHandler::AddStatRequest(const StatRequest& request) {
-    stat_requests_.emplace_back(request);
-}*/
-
-/*void RequestHandler::AddStatResult(const StatRequest& request) {
-    if (request.type == "Bus"s) {
-        stat_results_.emplace_back(request.id, db_.GetBusInfo(request.name));
-    } else if (request.type == "Stop"s) {
-        stat_results_.emplace_back(request.id, db_.GetStopInfo(request.name));
-    } else if (request.type == "Map"s) {
-        stat_results_.emplace_back(request.id, GetMapSVG());
-    }
-}*/
-
 void RequestHandler::AddStatResult(const StatRequest& request) {
     if (request.type == "Bus") {
         stat_results_.emplace_back(std::make_pair(request.id, db_.GetBusInfo(request.name)));
@@ -78,10 +64,6 @@ void RequestHandler::ApplyAllRequests() const {
 void RequestHandler::AddRenderSettings(const map_renderer::RenderSettings& settings) {
     mr_.AddRenderSettings(settings);
 }
-
-/*const std::vector<StatRequest>& RequestHandler::GetStatRequests() {
-    return stat_requests_; 
-}*/
 
 const std::vector<domain::StatResult>& RequestHandler::GetStatResults() {
     return stat_results_; 

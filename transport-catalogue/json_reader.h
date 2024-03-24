@@ -4,6 +4,7 @@
 #include "request_handler.h"
 #include "map_renderer.h"
 #include "json.h" 
+#include "json_builder.h" //
 #include "domain.h"
 
 #include <iostream>
@@ -12,9 +13,6 @@
 #include <string_view>
 #include <variant> 
 #include <vector>
-
-
-
 
 
 /*
@@ -51,10 +49,10 @@ public:
     map_renderer::RenderSettings ParseRenderSettings(const json::Dict& dict);
 
     // заполняют request_dict по ссылке результатами по запросу на вывод информации
-    void AddBusStatIntoDict(const int id, const domain::BusInfo& info, json::Dict& request_dict);
-    void AddStopStatIntoDict(const int id, const domain::StopInfo& info, json::Dict& request_dict);
-    void AddErrorInfoIntoDict(const int id, json::Dict& request_dict);
-    void AddSVGIntoDict(const int id, const std::string& svg_map, json::Dict& request_dict);
+    json::Dict AddBusStatIntoDict(const int id, const domain::BusInfo& info);
+    json::Dict AddStopStatIntoDict(const int id, const domain::StopInfo& info);
+    json::Dict AddErrorInfoIntoDict(const int id);
+    json::Dict AddSVGIntoDict(const int id, const std::string& svg_map);
 
 private:
     request_handler::RequestHandler& rh_; //методы для обработки запросов

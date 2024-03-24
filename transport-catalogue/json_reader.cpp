@@ -23,7 +23,7 @@ StopBaseRequest JsonReader::ParseStop(const Dict& dict) {
     request.name = dict.at("name"s).AsString();
     request.lat = dict.at("latitude"s).AsDouble();
     request.lng = dict.at("longitude"s).AsDouble();
-    for (const auto &node : dict.at("road_distances"s).AsMap()) {
+    for (const auto &node : dict.at("road_distances"s).AsDict()) {
         request.road_distances.emplace_back(node.first, node.second.AsInt());
     }
     return request;
@@ -83,10 +83,10 @@ RenderSettings JsonReader::ParseRenderSettings(const Dict& dict) {
 }
 
 void JsonReader::LoadFromJson(std::istream& input) {
-    auto load_from_json = Load(input).GetRoot().AsMap();
+    auto load_from_json = Load(input).GetRoot().AsDict();
     // добавляем все запросы на добавление данных в справочник
     for (const auto &item : load_from_json.at("base_requests"s).AsArray()) {
-        auto request = item.AsMap();
+        auto request = item.AsDict();
         if (request.at("type"s).AsString() == "Stop"s) {
             rh_.AddStopBaseRequest(ParseStop(std::move(request)));
         } else if (request.at("type"s).AsString() == "Bus"s) {
@@ -100,16 +100,15 @@ void JsonReader::LoadFromJson(std::istream& input) {
     rh_.ApplyAllRequests();
 
     // добавляем render_settings в renderer
-    rh_.AddRenderSettings(ParseRenderSettings(std::move(load_from_json.at("render_settings"s).AsMap())));
+    rh_.AddRenderSettings(ParseRenderSettings(std::move(load_from_json.at("render_settings"s).AsDict())));
     // добавляем не пустые маршруты (с остановками) и не пустые остановки (с автобусами через них) в handler
     rh_.AddAllBuses();
     rh_.AddAllStops();
 
     // добавляем все запросы на вывод информации из справочника
     for (const auto &item : std::move(load_from_json.at("stat_requests"s).AsArray())) {
-        auto request = item.AsMap();
+        auto request = item.AsDict();
         auto type = request.at("type"s).AsString();
-        //rh_.AddStatRequest(ParseStat(std::move(request))); //валидный json: только Stop, Bus, Map
         rh_.AddStatResult(ParseStat(std::move(request)));
     }
 }
@@ -118,15 +117,14 @@ void JsonReader::PrintIntoJson(std::ostream& output) {
     Array json_output;
     for (const auto& stat_res : rh_.GetStatResults()) { 
         Dict request_dict;
-        
         // выводим информацию по запросу маршрута
         if (std::holds_alternative<StatResultBus>(stat_res)) { 
             const auto& id = std::get<StatResultBus>(stat_res).first;
             if (std::get<StatResultBus>(stat_res).second != std::nullopt) {
                 const auto& info = std::get<StatResultBus>(stat_res).second.value();
-                AddBusStatIntoDict(id, info, request_dict);
+                request_dict = AddBusStatIntoDict(id, info);
             } else {
-                AddErrorInfoIntoDict(id, request_dict);
+                request_dict = AddErrorInfoIntoDict(id);
             } 
 
         // выводим информацию по запросу остановки
@@ -134,16 +132,16 @@ void JsonReader::PrintIntoJson(std::ostream& output) {
             const auto& id = std::get<StatResultStop>(stat_res).first;
             if (std::get<StatResultStop>(stat_res).second != std::nullopt) {
                 const auto& info = std::get<StatResultStop>(stat_res).second.value();
-                AddStopStatIntoDict(id, info, request_dict);
+                request_dict = AddStopStatIntoDict(id, info);
             } else {
-                AddErrorInfoIntoDict(id, request_dict);
+                request_dict = AddErrorInfoIntoDict(id);
             }
         
         // выводим информацию по запросу карты
         } else if  (std::holds_alternative<StatResultMap>(stat_res)) { 
             const auto& id = std::get<StatResultMap>(stat_res).first;
             const auto& svg_map = std::get<StatResultMap>(stat_res).second;
-            AddSVGIntoDict(id, svg_map, request_dict);
+            request_dict = AddSVGIntoDict(id, svg_map);
         }
         
         json_output.emplace_back(std::move(request_dict)); 
@@ -152,69 +150,56 @@ void JsonReader::PrintIntoJson(std::ostream& output) {
     Print(std::move(doc), output);
 }
 
-/*
-// изначально вызывал сохранённый в request_handler вектор запросов на вывод
-
-void JsonReader::PrintIntoJson(std::ostream& output) {    
-    Array json_output;
-    for (const auto& request : rh_.GetStatRequests()) { 
-        Dict request_dict;
-        // выводим информацию по запросу маршрута
-        if (request.type == "Bus") {
-            //auto bus_info = catalogue.GetBusInfo(request.name);
-            auto bus_info = rh_.GetBusStat(request.name);
-            if (bus_info != std::nullopt) {
-                const auto& info = bus_info.value();
-                AddBusStatIntoDict(request.id, info, request_dict);
-            } else {
-                AddErrorInfoIntoDict(request.id, request_dict);
-            }
-        // выводим информацию по запросу остановки
-        } else if (request.type == "Stop") {
-            //auto stop_info = catalogue.GetStopInfo(request.name);
-            auto stop_info = rh_.GetStopStat(request.name);
-            if (stop_info != std::nullopt) {
-                const auto& info = stop_info.value();
-                AddStopStatIntoDict(request.id, info, request_dict);
-            } else {
-                AddErrorInfoIntoDict(request.id, request_dict);
-            }
-        // выводим информацию по запросу карты
-        } else if (request.type == "Map") {
-            AddSVGIntoDict(request.id, rh_.GetMapSVG(), request_dict);
-        }
-        json_output.emplace_back(std::move(request_dict)); 
-    }
-    json::Document doc(std::move(json_output)); 
-    Print(std::move(doc), output);
-}
-*/
-
-void JsonReader::AddBusStatIntoDict(const int id, const BusInfo& info, Dict& request_dict) {
-    request_dict["curvature"s] = info.route_distance / info.route_length;
-    request_dict["request_id"s] = id;
-    request_dict["route_length"s] = info.route_distance;
-    request_dict["stop_count"s] = static_cast<int>(info.stops_on_route);
-    request_dict["unique_stop_count"s] = static_cast<int>(info.unique_stops);
+Dict JsonReader::AddBusStatIntoDict(const int id, const BusInfo& info) {
+    return Node{
+        Builder{}
+        .StartDict()
+            .Key("curvature"s).Value(info.route_distance / info.route_length)
+            .Key("request_id"s).Value(id)
+            .Key("route_length"s).Value(info.route_distance)
+            .Key("stop_count"s).Value(static_cast<int>(info.stops_on_route))
+            .Key("unique_stop_count"s).Value(static_cast<int>(info.unique_stops))
+        .EndDict()
+        .Build()
+        }.AsDict();
 }
 
-void JsonReader::AddStopStatIntoDict(const int id, const StopInfo& info, Dict& request_dict) {
+Dict JsonReader::AddStopStatIntoDict(const int id, const StopInfo& info) {
     Array buses;
     for (const auto& bus_name : info.bus_names) {
         buses.push_back(bus_name);
     }
-    request_dict["buses"s] = std::move(buses); 
-    request_dict["request_id"s] = id;
+
+    return Node{
+        Builder{}
+        .StartDict()
+            .Key("buses"s).Value(std::move(buses))
+            .Key("request_id"s).Value(id)
+        .EndDict()
+        .Build()
+        }.AsDict();
 }
 
-void JsonReader::AddErrorInfoIntoDict(const int id, Dict& request_dict) {
-    request_dict["request_id"s] = id;
-    request_dict["error_message"s] = "not found"s;
+Dict JsonReader::AddErrorInfoIntoDict(const int id) {
+    return Node{
+        Builder{}
+        .StartDict()
+            .Key("request_id"s).Value(id)
+            .Key("error_message"s).Value("not found"s)
+        .EndDict()
+        .Build()
+        }.AsDict();
 }
 
-void JsonReader::AddSVGIntoDict(const int id, const std::string& svg_map, Dict& request_dict) {
-    request_dict["request_id"s] = id;
-    request_dict["map"s] = svg_map;
+Dict JsonReader::AddSVGIntoDict(const int id, const std::string& svg_map) {
+    return Node{
+        Builder{}
+        .StartDict()
+            .Key("request_id"s).Value(id)
+            .Key("map"s).Value(svg_map)
+        .EndDict()
+        .Build()
+        }.AsDict();
 }
 
 } // namespace json_reader

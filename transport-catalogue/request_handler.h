@@ -14,9 +14,6 @@
 #include <vector>
 
 
-
-
-
 /*
 функции, выполняющие взаимодействие с транспортным справочником:
 от json_reader приходят запросы (добавление и вывод),
@@ -47,9 +44,6 @@ public:
     // Добавление запроса на добавление остановки
     void AddStopBaseRequest(const domain::StopBaseRequest& request);
 
-    // Добавление запроса на вывод
-    //void AddStatRequest(const domain::StatRequest& request);
-
     // Добавление запроса на вывод c получением результата BusInfo/StopInfo
     void AddStatResult(const domain::StatRequest& request);
 
@@ -58,9 +52,6 @@ public:
 
     // Добавление настроек визуализации в рендерер
     void AddRenderSettings(const map_renderer::RenderSettings& settings);
-
-    // Получение данных на запрос на вывод
-    //const std::vector<domain::StatRequest>& GetStatRequests();
 
     // Получение результатов по запросам на вывод информации из транспортного справочника
     const std::vector<domain::StatResult>& GetStatResults();
@@ -88,7 +79,6 @@ private:
     
     std::vector<domain::BusBaseRequest> bus_base_requests_; //запросы на ввод автобусных маршрутов
     std::vector<domain::StopBaseRequest> stop_base_requests_; //запросы на ввод остановок
-    //std::vector<domain::StatRequest> stat_requests_; // запросы на вывод информации из справочника
 
     std::vector<domain::Bus> buses_; //упорядоченные по алфавиту маршруты, проходящие через остановки
     std::vector<domain::Stop> stops_; //упорядоченные по алфавиту остановки, через которые проходят маршруты

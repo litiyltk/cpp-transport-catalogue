@@ -1,10 +1,10 @@
 {
+  "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
   "C_Cpp_Runner.debuggerPath": "gdb",
   "C_Cpp_Runner.cStandard": "",
   "C_Cpp_Runner.cppStandard": "",
-  "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.useMsvc": false,
   "C_Cpp_Runner.warnings": [
     "-Wall",
@@ -57,7 +57,6 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
-    "optional": "cpp",
     "array": "cpp",
     "atomic": "cpp",
     "bit": "cpp",
@@ -72,10 +71,10 @@
     "cstdint": "cpp",
     "cstdio": "cpp",
     "cstdlib": "cpp",
-    "ctime": "cpp",
     "cwchar": "cpp",
     "cwctype": "cpp",
     "deque": "cpp",
+    "map": "cpp",
     "string": "cpp",
     "unordered_map": "cpp",
     "unordered_set": "cpp",
@@ -87,6 +86,7 @@
     "memory": "cpp",
     "memory_resource": "cpp",
     "numeric": "cpp",
+    "optional": "cpp",
     "random": "cpp",
     "string_view": "cpp",
     "system_error": "cpp",
@@ -94,7 +94,6 @@
     "type_traits": "cpp",
     "utility": "cpp",
     "initializer_list": "cpp",
-    "iomanip": "cpp",
     "iosfwd": "cpp",
     "iostream": "cpp",
     "istream": "cpp",
@@ -106,8 +105,6 @@
     "stdexcept": "cpp",
     "streambuf": "cpp",
     "typeinfo": "cpp",
-    "map": "cpp",
-    "set": "cpp"
-  },
-  "C_Cpp.errorSquiggles": "disabled"
+    "variant": "cpp"
+  }
 }

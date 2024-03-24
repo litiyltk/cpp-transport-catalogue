@@ -24,6 +24,9 @@ public:
     using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
 
     Node() = default;
+
+    Node(const Value& value) : value_(value) {}
+
     Node(std::nullptr_t)
         : value_(nullptr) {
     }
@@ -90,18 +93,19 @@ public:
     bool IsArray() const {
         return std::holds_alternative<Array>(value_);
     }
+
     const Array& AsArray() const {
         using namespace std::literals;
         if (!IsArray()) {
             throw std::logic_error("Not an array"s);
         }
-
         return std::get<Array>(value_);
     }
 
     bool IsString() const {
         return std::holds_alternative<std::string>(value_);
     }
+
     const std::string& AsString() const {
         using namespace std::literals;
         if (!IsString()) {
@@ -111,13 +115,14 @@ public:
         return std::get<std::string>(value_);
     }
 
-    bool IsMap() const {
+    bool IsDict() const {
         return std::holds_alternative<Dict>(value_);
     }
-    const Dict& AsMap() const {
+
+    const Dict& AsDict() const {
         using namespace std::literals;
-        if (!IsMap()) {
-            throw std::logic_error("Not a map"s);
+        if (!IsDict()) {
+            throw std::logic_error("Not a dict"s);
         }
 
         return std::get<Dict>(value_);
@@ -128,6 +133,10 @@ public:
     }
 
     const Value& GetValue() const {
+        return value_;
+    }
+
+    Value& GetValue() {
         return value_;
     }
 
