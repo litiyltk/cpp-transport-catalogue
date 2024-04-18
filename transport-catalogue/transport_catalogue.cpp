@@ -37,7 +37,7 @@ std::optional<BusInfo> TransportCatalogue::GetBusInfo(const std::string_view nam
     auto route = bus->route;
     bool is_roundtrip = FindBus(name)->is_roundtrip;
     bus_info = { std::move(bus)->name,
-                 ComputeCountStops(route.size(),is_roundtrip),
+                 ComputeCountStops(route.size(), is_roundtrip),
                  ComputeCountUniqueStops(route),
                  ComputeRouteLength(route, is_roundtrip), // географическая длина
                  ComputeRouteDistance(route, is_roundtrip) }; // фактическая длина
@@ -90,11 +90,11 @@ int TransportCatalogue::GetDistance(const std::string_view start, const std::str
     return distances_.at({ finish_stop, start_stop });
 }
 
-const std::deque<Bus>& TransportCatalogue::GetBuses() {
+const std::deque<Bus>& TransportCatalogue::GetBuses() const {
     return buses_;
 }
 
-const std::deque<Stop>& TransportCatalogue::GetStops() {
+const std::deque<Stop>& TransportCatalogue::GetStops() const {
     return stops_;
 }
 

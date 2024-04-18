@@ -150,7 +150,7 @@ public:
     explicit MapRendererSVG() = default;
 
     // добавляет настройки визуализации карты маршрутов
-    void AddRenderSettings(const RenderSettings& settings);
+    void SetRenderSettings(const RenderSettings& settings);
 
     // создаём проектор сферических координат на плоскость
     void SetSphereProjector(const std::vector<domain::Stop>& stops);

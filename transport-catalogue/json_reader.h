@@ -6,6 +6,7 @@
 #include "json.h" 
 #include "json_builder.h" //
 #include "domain.h"
+#include "transport_router.h"
 
 #include <iostream>
 #include <optional> 
@@ -48,11 +49,15 @@ public:
     // возвращает структуру с параметрами для визуализации схемы
     map_renderer::RenderSettings ParseRenderSettings(const json::Dict& dict);
 
+    // возвращает структуру с параметрами для графа
+    domain::RouterSettings ParseRouterSettings(const json::Dict& dict);
+
     // заполняют request_dict по ссылке результатами по запросу на вывод информации
     json::Dict AddBusStatIntoDict(const int id, const domain::BusInfo& info);
     json::Dict AddStopStatIntoDict(const int id, const domain::StopInfo& info);
     json::Dict AddErrorInfoIntoDict(const int id);
     json::Dict AddSVGIntoDict(const int id, const std::string& svg_map);
+    json::Dict AddRouteInfoIntoDict(const int id, const domain::RouteInfo& route_info);
 
 private:
     request_handler::RequestHandler& rh_; //методы для обработки запросов

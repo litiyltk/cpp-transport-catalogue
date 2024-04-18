@@ -51,11 +51,11 @@ public:
     // получение дистанции между остановками
     int GetDistance(const std::string_view start, const std::string_view finish) const;
 
-    // Возвращает все маршруты автобусов в алфавитном порядке
-    const std::deque<domain::Bus>& GetBuses();
+    // Возвращает все маршруты автобусов 
+    const std::deque<domain::Bus>& GetBuses() const;
 
-    // Возвращает остановки (только на маршрутах) в алфавитном порядке 
-    const std::deque<domain::Stop>& GetStops();
+    // Возвращает остановки (только на маршрутах) 
+    const std::deque<domain::Stop>& GetStops() const;
 
 private:
 

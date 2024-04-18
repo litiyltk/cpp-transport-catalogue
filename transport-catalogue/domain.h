@@ -41,10 +41,38 @@ struct BusInfo {
     int route_distance = 0;
 };
 
-//  информация об остановке: название, вектор названий автобусов
+// информация об остановке: название, вектор названий автобусов
 struct StopInfo {
     std::string name;
     std::vector<std::string> bus_names;
+};
+
+// информация о ребре движения (звено маршрута от остановки до остановки на автобусе)
+struct BusEdgeInfo {
+    std::string name; // название маршрута 
+    double time;
+    size_t span_count = 0;
+};
+
+// информация о ребре ожидания (звено маршрута - пересадка на остановке)
+struct WaitEdgeInfo {
+    std::string name; // название остановки
+    double time;
+};
+
+// описание ребра маршрута
+using EdgeInfo = std::variant<BusEdgeInfo, WaitEdgeInfo>;
+
+// общее время и вектор ребер
+struct RouteInfo {
+    double time = 0.0;
+    std::vector<EdgeInfo> route_edges;
+};
+
+// настройки маршрутизации
+struct RouterSettings {
+    double bus_wait_time_ = 0.0;
+    double bus_velocity_ = 0.0;
 };
 
 struct Hasher {
@@ -85,7 +113,9 @@ ID запроса, тип запроса, название для Bus/Stop
 struct StatRequest {
     int id;
     std::string type;
-    std::string name;
+    std::string name; 
+    std::string from; 
+    std::string to; 
 };
 
 /*
@@ -96,10 +126,12 @@ struct StatRequest {
 using StatResultBus = std::pair<int, std::optional<BusInfo>>;
 using StatResultStop = std::pair<int, std::optional<StopInfo>>;
 using StatResultMap = std::pair<int, std::string>;
+using StatResultRoute = std::pair<int, std::optional<RouteInfo>>;
 
 using StatResult = std::variant<std::nullptr_t,
                                 StatResultBus,
                                 StatResultStop,
-                                StatResultMap>;
+                                StatResultMap,
+                                StatResultRoute>;
 
 } //namespace domain

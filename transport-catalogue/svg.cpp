@@ -30,6 +30,11 @@ namespace svg {
 
     }  // namespace
 
+    std::ostream& operator<<(std::ostream& out, const Point& point) {
+            out << "("s << point.x_ << ","s << point.y_ << ")"s;
+            return out;
+        }
+
     std::ostream& operator<<(std::ostream& out, const Color& color) {
         std::visit(
                 [&out](const auto& value) {

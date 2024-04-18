@@ -3,5 +3,11 @@
 
 
 namespace geo {
+    using namespace std::literals;
+
+    std::ostream& operator<<(std::ostream& out, const Coordinates& coord) {
+            out << "("s << coord.lat << ","s << coord.lng << ")"s;
+            return out;
+        }
 
 }  // namespace geo

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 
 
 // функции для работы с географическими координатами
@@ -19,8 +20,10 @@ struct Coordinates {
     double lng;
 };
 
+std::ostream& operator<<(std::ostream& out, const Coordinates& coord);
+
 inline double ComputeDistance(Coordinates from, Coordinates to) {
-    const double EarthRadius = 6371000.0;
+    static const double EarthRadius = 6371000.0;
     using namespace std;
     if (from == to) {
         return 0;

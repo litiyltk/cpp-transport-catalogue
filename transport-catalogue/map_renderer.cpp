@@ -25,7 +25,7 @@ namespace map_renderer {
 	using namespace geo;
     using namespace domain;
 
-    void MapRendererSVG::AddRenderSettings(const RenderSettings& settings) {
+    void MapRendererSVG::SetRenderSettings(const RenderSettings& settings) {
         settings_ = settings;
     }	
 

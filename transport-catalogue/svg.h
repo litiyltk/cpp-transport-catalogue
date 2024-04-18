@@ -63,6 +63,7 @@ namespace svg {
         double y_ = 0;
     };
 
+    std::ostream& operator<<(std::ostream& out, const Point& point);
 
     struct Rgb {
         Rgb() = default;

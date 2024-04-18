@@ -26,13 +26,15 @@ void RequestHandler::AddStopBaseRequest(const StopBaseRequest& request) {
     stop_base_requests_.emplace_back(request);
 }
 
-void RequestHandler::AddStatResult(const StatRequest& request) {
-    if (request.type == "Bus") {
+void RequestHandler::AddStatResult(const StatRequest& request) { //переработать через variant, чтобы не было обращения к полю type
+    if (request.type == "Bus"s) {
         stat_results_.emplace_back(std::make_pair(request.id, db_.GetBusInfo(request.name)));
-    } else if (request.type == "Stop") {
+    } else if (request.type == "Stop"s) {
         stat_results_.emplace_back(std::make_pair(request.id, db_.GetStopInfo(request.name)));
-    } else if (request.type == "Map") {
-        stat_results_.emplace_back(std::make_pair(request.id, GetMapSVG()));
+    } else if (request.type == "Map"s) {
+        stat_results_.emplace_back(std::make_pair(request.id, GetStringSVG()));
+    } else if (request.type == "Route"s) {
+        stat_results_.emplace_back(std::make_pair(request.id, ro_.GetOptimalRoute(request.from, request.to)));
     }
 }
 
@@ -58,14 +60,23 @@ void RequestHandler::ApplyAllRequests() const {
             db_.SetDistance(request.name, line.first, line.second); //start, finish, distance
         }
     }
-   
+
 }
 
 void RequestHandler::AddRenderSettings(const map_renderer::RenderSettings& settings) {
-    mr_.AddRenderSettings(settings);
+    mr_.SetRenderSettings(settings);
 }
 
-const std::vector<domain::StatResult>& RequestHandler::GetStatResults() {
+void RequestHandler::AddRouterSettings(const RouterSettings& settings) {
+    ro_.SetRouterSettings(settings);
+}
+
+void RequestHandler::SetTransportRouter() {
+    ro_.SetVertexCount(db_.GetStops().size());
+    ro_.BuildTransportRouter();
+}
+
+const std::vector<domain::StatResult>& RequestHandler::GetStatResults() const {
     return stat_results_; 
 }
 
@@ -93,18 +104,18 @@ void RequestHandler::AddAllStops() {
         });
 }
 
-const std::vector<Bus>& RequestHandler::GetAllBuses() {
+const std::vector<Bus>& RequestHandler::GetAllBuses() const {
     return buses_;
 }
 
-const std::vector<Stop>& RequestHandler::GetAllStops() {
+const std::vector<Stop>& RequestHandler::GetAllStops() const {
     return stops_;
 }
 
-std::string RequestHandler::GetMapSVG() {
+const std::string RequestHandler::GetStringSVG() const {
     std::ostringstream strm;
     mr_.RenderMap(strm, buses_, stops_);
     return strm.str();
 }
-
+      
 } //namespace request_handler

@@ -33,7 +33,9 @@ StatRequest JsonReader::ParseStat(const Dict& dict) {
     StatRequest request;
     request.id = dict.at("id"s).AsInt();
     request.type = dict.at("type"s).AsString();
-    request.name = (dict.count("name"s) ? dict.at("name"s).AsString() : "without name for 'map'-request"s); 
+    request.name = (dict.count("name"s) ? dict.at("name"s).AsString() : "without name for 'map'-request"s);
+    request.to = (dict.count("to"s) ? dict.at("to"s).AsString() : "without 'to'"s);  
+    request.from = (dict.count("from"s) ? dict.at("from"s).AsString() : "without 'from'"s); 
     return request;
 }
 
@@ -82,16 +84,24 @@ RenderSettings JsonReader::ParseRenderSettings(const Dict& dict) {
     return settings;
 }
 
+RouterSettings JsonReader::ParseRouterSettings(const Dict& dict) {
+    RouterSettings settings;
+    settings.bus_wait_time_ = static_cast<size_t>(dict.at("bus_wait_time"s).AsInt());
+    settings.bus_velocity_ = dict.at("bus_velocity"s).AsDouble();
+    return settings;
+}
+
 void JsonReader::LoadFromJson(std::istream& input) {
     auto load_from_json = Load(input).GetRoot().AsDict();
-    // добавляем все запросы на добавление данных в справочник
+    
+    // base_requests - добавляем в handler все запросы на добавление данных в справочник
     for (const auto &item : load_from_json.at("base_requests"s).AsArray()) {
         auto request = item.AsDict();
         if (request.at("type"s).AsString() == "Stop"s) {
             rh_.AddStopBaseRequest(ParseStop(std::move(request)));
         } else if (request.at("type"s).AsString() == "Bus"s) {
             rh_.AddBusBaseRequest(ParseBus(std::move(request)));
-        } /*else { //валидный json: только Stop и Bus
+        } /*else { //валидный входной json: только Stop и Bus
             std::cerr << "not Stop, not Bus" << std::endl;
         }*/
     }
@@ -101,9 +111,16 @@ void JsonReader::LoadFromJson(std::istream& input) {
 
     // добавляем render_settings в renderer
     rh_.AddRenderSettings(ParseRenderSettings(std::move(load_from_json.at("render_settings"s).AsDict())));
+
     // добавляем не пустые маршруты (с остановками) и не пустые остановки (с автобусами через них) в handler
     rh_.AddAllBuses();
     rh_.AddAllStops();
+
+    // добавляем routing_settings в tr.router
+    rh_.AddRouterSettings(ParseRouterSettings(std::move(load_from_json.at("routing_settings"s).AsDict())));
+    
+    // добавляем количество вершин в tr.router и строим маршрутизатор 
+    rh_.SetTransportRouter(); 
 
     // добавляем все запросы на вывод информации из справочника
     for (const auto &item : std::move(load_from_json.at("stat_requests"s).AsArray())) {
@@ -111,6 +128,7 @@ void JsonReader::LoadFromJson(std::istream& input) {
         auto type = request.at("type"s).AsString();
         rh_.AddStatResult(ParseStat(std::move(request)));
     }
+
 }
 
 void JsonReader::PrintIntoJson(std::ostream& output) {    
@@ -138,10 +156,20 @@ void JsonReader::PrintIntoJson(std::ostream& output) {
             }
         
         // выводим информацию по запросу карты
-        } else if  (std::holds_alternative<StatResultMap>(stat_res)) { 
+        } else if (std::holds_alternative<StatResultMap>(stat_res)) { 
             const auto& id = std::get<StatResultMap>(stat_res).first;
             const auto& svg_map = std::get<StatResultMap>(stat_res).second;
             request_dict = AddSVGIntoDict(id, svg_map);
+
+        // выводим информацию по запросу оптимального маршрута
+        } else if (std::holds_alternative<StatResultRoute>(stat_res)) {
+            const auto& id = std::get<StatResultRoute>(stat_res).first;
+            const auto& route_info = std::get<StatResultRoute>(stat_res).second;
+            if (route_info != std::nullopt) {
+                request_dict = AddRouteInfoIntoDict(id, route_info.value());
+            } else {
+                request_dict = AddErrorInfoIntoDict(id);
+            }
         }
         
         json_output.emplace_back(std::move(request_dict)); 
@@ -161,7 +189,7 @@ Dict JsonReader::AddBusStatIntoDict(const int id, const BusInfo& info) {
             .Key("unique_stop_count"s).Value(static_cast<int>(info.unique_stops))
         .EndDict()
         .Build()
-        }.AsDict();
+    }.AsDict();
 }
 
 Dict JsonReader::AddStopStatIntoDict(const int id, const StopInfo& info) {
@@ -177,7 +205,7 @@ Dict JsonReader::AddStopStatIntoDict(const int id, const StopInfo& info) {
             .Key("request_id"s).Value(id)
         .EndDict()
         .Build()
-        }.AsDict();
+    }.AsDict();
 }
 
 Dict JsonReader::AddErrorInfoIntoDict(const int id) {
@@ -188,7 +216,7 @@ Dict JsonReader::AddErrorInfoIntoDict(const int id) {
             .Key("error_message"s).Value("not found"s)
         .EndDict()
         .Build()
-        }.AsDict();
+    }.AsDict();
 }
 
 Dict JsonReader::AddSVGIntoDict(const int id, const std::string& svg_map) {
@@ -199,7 +227,49 @@ Dict JsonReader::AddSVGIntoDict(const int id, const std::string& svg_map) {
             .Key("map"s).Value(svg_map)
         .EndDict()
         .Build()
-        }.AsDict();
+    }.AsDict();
+}
+
+Dict JsonReader::AddRouteInfoIntoDict(const int id, const RouteInfo& route_info) {
+    Array spans;
+    for (const auto& route_edge : route_info.route_edges) {
+
+        // ребро ожидания
+        if (std::holds_alternative<WaitEdgeInfo>(route_edge)) { 
+            const auto& wait_edge_info = std::get<WaitEdgeInfo>(route_edge);
+            Node dict = Builder{}
+                .StartDict()
+                    .Key("type").Value("Wait")
+                    .Key("stop_name").Value(wait_edge_info.name)
+                    .Key("time").Value(wait_edge_info.time)
+                .EndDict()
+                .Build();
+            spans.push_back(dict);
+
+        // ребро движения
+        } else if (std::holds_alternative<BusEdgeInfo>(route_edge)) { 
+            const auto& bus_edge_info = std::get<BusEdgeInfo>(route_edge);
+            Node dict = Builder{}
+                .StartDict()
+                    .Key("type").Value("Bus")
+                    .Key("bus").Value(bus_edge_info.name)
+                    .Key("span_count").Value(static_cast<int>(bus_edge_info.span_count))
+                    .Key("time").Value(bus_edge_info.time)
+                    .EndDict()
+                    .Build();
+            spans.push_back(dict);
+        }
+    }
+
+    return Node{
+        Builder{}
+        .StartDict()
+            .Key("request_id").Value(id)
+            .Key("total_time").Value(route_info.time)
+            .Key("items").Value(spans)
+        .EndDict()
+        .Build()
+    }.AsDict();
 }
 
 } // namespace json_reader
