@@ -2,15 +2,17 @@
 
 #include "geo.h"
 #include "domain.h"
+#include "graph.h"
+#include "router.h"
 #include "test_framework.h"
 #include "transport_catalogue.h"
-//#include "transport_router.h"
+#include "transport_router.h"
 #include "map_renderer.h"
+
 
 // тесты заполнения базы данных
 namespace tests {
     using namespace transport_catalogue;
-    using namespace transport_router;
     using namespace test_framework;
     using namespace domain;
 
@@ -224,6 +226,65 @@ void TestGetStopInfo() {
     ASSERT(!stop_info_new_york_city.has_value());
 }
 
+void TestGraphAndRouter() {
+
+    // Список рёбер
+    std::vector<graph::Edge<size_t>> edges = { 
+                                                graph::Edge<size_t>{0, 1, 3}, // ребро 0
+                                                graph::Edge<size_t>{0, 2, 6}, // ребро 1
+                                                graph::Edge<size_t>{1, 0, 3}, // ребро 2
+                                                graph::Edge<size_t>{1, 2, 5}, // ребро 3
+                                                graph::Edge<size_t>{2, 0, 8}, // ребро 4
+                                                graph::Edge<size_t>{2, 1, 4}, // ребро 5
+                                             };
+
+    // Создаем граф на основе списка рёбер
+    graph::DirectedWeightedGraph<size_t> graph(3);
+    for (const auto& e : edges) {
+        graph.AddEdge(e);
+    }
+
+    // Проверяем параметры графа
+    ASSERT_EQUAL(graph.GetVertexCount(), 3);
+    ASSERT_EQUAL(graph.GetEdgeCount(), 6);
+                                  
+    // Инициализируем Router
+    graph::Router<size_t> router(graph);
+
+    // Строим оптимальные маршруты
+    const auto route0 = router.BuildRoute(0,1).value();
+    const auto route1 = router.BuildRoute(0,2).value();
+    const auto route2 = router.BuildRoute(1,0).value();
+    const auto route3 = router.BuildRoute(1,2).value();
+    const auto route4 = router.BuildRoute(2,0).value();
+    const auto route5 = router.BuildRoute(2,1).value();
+
+    // Проверяем длины оптимальных путей
+    ASSERT_EQUAL(route0.weight, 3);
+    ASSERT_EQUAL(route1.weight, 6);
+    ASSERT_EQUAL(route2.weight, 3);
+    ASSERT_EQUAL(route3.weight, 5);
+    ASSERT_EQUAL(route4.weight, 7);
+    ASSERT_EQUAL(route5.weight, 4);
+    
+    // Проверяем количество рёбер на оптимальных путях
+    ASSERT_EQUAL(route0.edges.size(), 1);
+    ASSERT_EQUAL(route1.edges.size(), 1);
+    ASSERT_EQUAL(route2.edges.size(), 1);
+    ASSERT_EQUAL(route3.edges.size(), 1);
+    ASSERT_EQUAL(route4.edges.size(), 2);
+    ASSERT_EQUAL(route5.edges.size(), 1);
+
+    // Проверяем индексы рёбер
+    ASSERT_EQUAL(route0.edges[0], 0);
+    ASSERT_EQUAL(route1.edges[0], 1);
+    ASSERT_EQUAL(route2.edges[0], 2);
+    ASSERT_EQUAL(route3.edges[0], 3);
+    ASSERT_EQUAL(route4.edges[0], 5);
+    ASSERT_EQUAL(route4.edges[1], 2);
+    ASSERT_EQUAL(route5.edges[0], 5);
+}
+
 void TestSphereProjector() {
 
     // Задаём размер карты и отступ от краёв
@@ -269,9 +330,9 @@ void TestSphereProjector() {
     }
 }
 
-/*
 // проверка методов TransportCatalogue GetBusInfo и методов private TransportCatalogue
 void GetOptimalRoute() {
+    using namespace transport_router;
     TransportCatalogue catalogue;
 
     // Остановки для примера
@@ -307,11 +368,11 @@ void GetOptimalRoute() {
     }
 
     // Добавим дистанции между остановками
-    catalogue.SetDistance("A"sv, "B"sv, 2600); 
-    catalogue.SetDistance("B"sv, "C"sv, 890);
-    catalogue.SetDistance("C"sv, "A"sv, 2500);
-    catalogue.SetDistance("C"sv, "B"sv, 1380);
-    catalogue.SetDistance("C"sv, "E"sv, 4650);
+    catalogue.SetDistance("Biryulyovo Zapadnoye"sv, "Biryulyovo Tovarnaya"sv, 2600); 
+    catalogue.SetDistance("Biryulyovo Tovarnaya"sv, "Universam"sv, 890);
+    catalogue.SetDistance("Universam"sv, "Biryulyovo Zapadnoye"sv, 2500);
+    catalogue.SetDistance("Universam"sv, "Biryulyovo Tovarnaya"sv, 1380);
+    catalogue.SetDistance("Universam"sv, "Prazhskaya"sv, 4650);
     
     // Зададим параметры маршрутизации 
     TransportRouter router(catalogue);
@@ -325,17 +386,33 @@ void GetOptimalRoute() {
     // Построим маршрутизатор
     router.BuildTransportRouter();
 
-    // Проверим маршрут A->C
-    // Проверяем значения с точностью до 0.001
-    const double EPSILON = 0.001;
-    const auto info_AC = router.GetOptimalRoute(A.name, C.name); 
-    ASSERT(info_AC.has_value());
-    ASSERT(std::abs(info_AC.value().time - 11.235) < EPSILON);
-    const auto route_AC = info_AC.value().route_edges;
-    ASSERT_EQUAL(route_AC.size(), 2);
+    // Строим оптимальные маршруты
+    const auto info_AC = router.GetOptimalRoute(A.name, C.name);
+    const auto info_AE = router.GetOptimalRoute(A.name, E.name);
+
+    // Строим отсутствующие оптимальные маршруты
+    const auto info_XY = router.GetOptimalRoute("Test name X"s, "Test name Y"s); 
+    const auto info_EY = router.GetOptimalRoute(E.name, "Test name Y"s);
     
+    // Проверяем наличие оптимального маршрута
+    ASSERT(info_AC.has_value());
+    ASSERT(info_AE.has_value());
+
+    // Проверим отсутствие оптимального маршрута для незаданных остановок
+    ASSERT(!info_XY.has_value());
+    ASSERT(!info_EY.has_value());
+
+    // Проверяем значения времени маршрута с точностью до 0.001
+    const double EPSILON = 0.001;
+    ASSERT(std::abs(info_AC.value().time - 11.235) < EPSILON);
+    ASSERT(std::abs(info_AE.value().time - 24.21) < EPSILON);
+
+    // Проверяем количество рёбер маршрута (bus / wait)
+    const auto route_AC = info_AC.value().route_edges;
+    const auto route_AE = info_AE.value().route_edges;
+    ASSERT_EQUAL(route_AC.size(), 2);
+    ASSERT_EQUAL(route_AE.size(), 4);
 }
-*/
 
 void RunTests() {
     //geo
@@ -348,11 +425,14 @@ void RunTests() {
     RUN_TEST(TestGetBusInfo);
     RUN_TEST(TestGetStopInfo);
 
+    //graph & router
+    RUN_TEST(TestGraphAndRouter);
+
     // mr
     RUN_TEST(TestSphereProjector);
 
     // ro
-    //RUN_TEST(GetOptimalRoute);
+    RUN_TEST(GetOptimalRoute);
 
     std::cerr << std::endl << "All tests passed successfully!"s << std::endl << std::endl;
 }
